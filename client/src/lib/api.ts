@@ -13,20 +13,39 @@ export async function apiFetch<T = any>(
 ): Promise<T> {
   const { token, ...fetchOptions } = options;
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...(fetchOptions.headers as Record<string, string>),
   };
+
+  // 只有带 body 的请求才设 Content-Type（避免 OPTIONS 预检请求）
+  if (fetchOptions.body) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
-    ...fetchOptions,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}${endpoint}`, {
+      ...fetchOptions,
+      headers,
+    });
+  } catch (err: any) {
+    throw new Error(`网络错误：无法连接到服务器 — ${err.message}`);
+  }
 
-  const data = await response.json();
+  // 先检查响应状态，再尝试解析 JSON
+  let data: any;
+  try {
+    const text = await response.text();
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(
+      `服务器返回了非 JSON 响应 (HTTP ${response.status})。` +
+      `请检查后端是否正常运行，或 Railway 环境变量 PORT 是否已设为 8080。`
+    );
+  }
 
   if (!response.ok) {
     throw new Error(data.error || `请求失败 (${response.status})`);
