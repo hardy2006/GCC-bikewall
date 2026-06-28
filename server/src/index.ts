@@ -14,7 +14,11 @@ async function main() {
 
   // 中间件
   app.use(cors({
-    origin: ["http://localhost:5173", "http://localhost:3000"],
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "https://gcc-bikewall.pages.dev"
+    ],
     credentials: true
   }));
   app.use(express.json({ limit: '10mb' }));
