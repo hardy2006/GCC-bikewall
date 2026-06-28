@@ -2,7 +2,9 @@
 import fs from "fs";
 import path from "path";
 
-const DB_PATH = path.join(__dirname, "..", "..", "data", "bike-repair.db");
+// Railway 上通过 DATA_DIR 环境变量指定持久化目录
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "..", "..", "data");
+const DB_PATH = path.join(DATA_DIR, "bike-repair.db");
 
 let db: SqlJsDatabase | null = null;
 

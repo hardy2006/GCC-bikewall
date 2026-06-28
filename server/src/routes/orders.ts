@@ -6,8 +6,11 @@ import path from "path";
 
 const router = Router();
 
-// 图片保存目录
-const UPLOAD_DIR = path.join(__dirname, "..", "..", "uploads");
+// 图片保存目录（支持 Railway Volume 持久化）
+const UPLOAD_DIR = path.join(
+  process.env.DATA_DIR || path.join(__dirname, "..", ".."),
+  "uploads"
+);
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
