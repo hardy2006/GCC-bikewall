@@ -8,15 +8,11 @@ const router = Router();
 // POST /api/auth/register
 router.post("/register", (req: Request, res: Response) => {
   try {
-    const { username, password, role, phone, realName } = req.body;
+    const { username, password, phone, realName } = req.body;
+    const role = "customer";
 
-    if (!username || !password || !role) {
-      res.status(400).json({ error: "用户名、密码和角色为必填项" });
-      return;
-    }
-
-    if (!["customer", "technician", "operator"].includes(role)) {
-      res.status(400).json({ error: "无效的角色类型" });
+    if (!username || !password) {
+      res.status(400).json({ error: "用户名和密码为必填项" });
       return;
     }
 

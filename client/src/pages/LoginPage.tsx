@@ -57,13 +57,6 @@ export default function LoginPage() {
             {isRegister && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">角色</label>
-                  <select disabled className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
-                    <option>客户 - 提交维修单</option>
-                  </select>
-                  <p className="text-xs text-gray-400 mt-1">目前仅开放客户注册，维修员/运营者账号由管理员创建</p>
-                </div>
-                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">真实姓名（可选）</label>
                   <input type="text" value={realName} onChange={(e) => setRealName(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="请输入真实姓名" />
@@ -87,8 +80,7 @@ export default function LoginPage() {
           </div>
           {!isRegister && (
             <div className="mt-4 p-3 bg-gray-50 rounded text-xs text-gray-500">
-              <p className="font-medium mb-1">演示账号（密码均为 123456）：</p>
-              <p>客户: customer1 / customer2</p>
+              <p className="font-medium mb-1">管理员账号（密码 123456）：</p>
               <p>维修员: tech1 / tech2</p>
               <p>运营者: operator1</p>
             </div>

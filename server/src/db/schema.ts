@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS repair_orders (
   service_type TEXT,
   image_paths TEXT,
   repair_day TEXT,
+  rush_time TEXT,
   location TEXT,
   is_rush INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,

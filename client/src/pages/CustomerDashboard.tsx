@@ -5,13 +5,13 @@ import { useOrders } from "../hooks/useOrders";
 import OrderCard from "../components/OrderCard";
 import OrderDetailModal from "./OrderDetail";
 
-// GCC广商单车墙价目表
 const SERVICE_CATEGORIES = [
   { label: "🛠️ 服务项目", items: ["打气/上油(2r)","除锈剂(5r)","打气筒(10r)","新车组装-通勤车(35r)","新车组装-山地车(45r)","异响排查(10r)","零件安装/拆卸-车后座/脚踏板/脚撑架(10r)"] },
   { label: "🛑 刹车系统", items: ["刹车调试-单边(10r)","刹车调试-双边(15r)","刹车器更换-单边(15r)","刹车器更换-双边(20r)","刹车器(10r)","刹车线更换-单边(12r)","刹车线更换-双边(20r)","刹车线/管(3r)","刹把更换-非油刹(15r)","刹车手柄(5r)"] },
   { label: "🔄 轮组系统", items: ["内胎更换-前轮(25r)","内胎更换-后轮(30r)","内胎(10-15r)","内外胎一起更换-前轮(30r)","内外胎一起更换-后轮(35r)"] },
   { label: "⚙️ 变速系统", items: ["后拨更换(30r)","变速调试-单边(10r)","变速调试-双边(15r)","尾勾更换(15r)"] },
   { label: "🔗 传动系统", items: ["牙盘更换(30r)","链条更换(15r)","链条(10-20r)","前叉滚珠更换(30r)","滚珠(5-10r)","掉链子(10-20r)","链条松紧器(2r)"] },
+  { label: "📌 其他", items: ["其他故障"] },
 ];
 
 export default function CustomerDashboard() {
@@ -22,13 +22,13 @@ export default function CustomerDashboard() {
   const [viewOrderId, setViewOrderId] = useState<number | null>(null);
 
   const [serviceType, setServiceType] = useState("");
+  const [customFault, setCustomFault] = useState("");
   const [bikeBrand, setBikeBrand] = useState("");
-  const [bikeModel, setBikeModel] = useState("");
   const [bikeColor, setBikeColor] = useState("");
   const [problemDescription, setProblemDescription] = useState("");
   const [repairDay, setRepairDay] = useState("");
+  const [rushTime, setRushTime] = useState("");
   const [location, setLocation] = useState("");
-  const [isRush, setIsRush] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -61,16 +61,37 @@ export default function CustomerDashboard() {
 
   const removeImage = (idx: number) => setImages(prev => prev.filter((_, i) => i !== idx));
 
+  const getFinalServiceType = () => {
+    if (serviceType === "其他故障") return `其他故障: ${customFault || "未填写"}`;
+    return serviceType;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!serviceType) { setSubmitError("请选择服务项目"); return; }
+    if (serviceType === "其他故障" && !customFault.trim()) { setSubmitError("请填写其他故障的具体内容"); return; }
     if (!repairDay) { setSubmitError("请选择维修日期"); return; }
+    if (repairDay === "加急" && !rushTime.trim()) { setSubmitError("请填写加急时间"); return; }
     if (!location) { setSubmitError("请选择维修地点"); return; }
+    if (images.length === 0) { setSubmitError("请上传至少一张单车位置图片"); return; }
     setSubmitError(""); setSubmitting(true);
     try {
-      await createOrder({ serviceType, repairDay, location, isRush, imagePaths: images, bikeBrand: bikeBrand || undefined, bikeModel: bikeModel || undefined, bikeColor: bikeColor || undefined, problemDescription: problemDescription || undefined, urgentLevel: isRush ? "urgent" : "normal" });
+      await createOrder({
+        serviceType: getFinalServiceType(),
+        repairDay,
+        location,
+        isRush: repairDay === "加急",
+        rushTime: repairDay === "加急" ? rushTime : undefined,
+        imagePaths: images,
+        bikeBrand: bikeBrand || undefined,
+        bikeColor: bikeColor || undefined,
+        problemDescription: problemDescription || undefined,
+        urgentLevel: repairDay === "加急" ? "urgent" : "normal",
+      });
       setSubmitSuccess(true);
-      setServiceType(""); setBikeBrand(""); setBikeModel(""); setBikeColor(""); setProblemDescription(""); setRepairDay(""); setLocation(""); setIsRush(false); setImages([]);
+      setServiceType(""); setCustomFault(""); setBikeBrand(""); setBikeColor("");
+      setProblemDescription(""); setRepairDay(""); setRushTime(""); setLocation("");
+      setImages([]);
       fetchOrders("customer");
       setTimeout(() => setSubmitSuccess(false), 3000);
     } catch (err: any) { setSubmitError(err.message || "提交失败"); }
@@ -92,6 +113,7 @@ export default function CustomerDashboard() {
       {showForm ? (
         <div className="bg-white rounded-lg shadow-md p-6 max-w-2xl">
           <h2 className="text-lg font-semibold mb-4">提交维修申请</h2>
+          <p className="text-xs text-gray-400 mb-4">营业时间：每周二、五统一修 | 加急可约其他时间(+10r) | 上门取送(+10r)</p>
           {submitSuccess && <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-green-700 text-sm">✅ 维修申请已成功提交！维修员将尽快处理您的订单。</div>}
           {submitError && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">{submitError}</div>}
 
@@ -107,21 +129,25 @@ export default function CustomerDashboard() {
                   </optgroup>
                 ))}
               </select>
+              {serviceType === "其他故障" && (
+                <input type="text" value={customFault} onChange={(e) => setCustomFault(e.target.value)}
+                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="请描述具体的故障内容" required />
+              )}
             </div>
 
             {/* 单车信息 */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div><label className="block text-sm font-medium text-gray-700 mb-1">单车品牌</label><input type="text" value={bikeBrand} onChange={(e) => setBikeBrand(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="如：捷安特" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">型号</label><input type="text" value={bikeModel} onChange={(e) => setBikeModel(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="如：ATX 860" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">颜色</label><input type="text" value={bikeColor} onChange={(e) => setBikeColor(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="如：黑色" /></div>
             </div>
 
-            {/* 问题描述 */}
+            {/* 补充说明 */}
             <div><label className="block text-sm font-medium text-gray-700 mb-1">补充说明</label><textarea value={problemDescription} onChange={(e) => setProblemDescription(e.target.value)} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="如有其他需要说明的情况可在此补充" /></div>
 
-            {/* 图片上传 */}
+            {/* 图片上传 - 必填 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">上传图片 <span className="text-xs text-gray-400">（用于确定单车位置，可选）</span></label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">上传单车位置图片 <span className="text-red-500">*</span></label>
               <div className="flex items-center gap-3">
                 <input ref={fileRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                 <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className="px-3 py-1.5 text-sm border border-blue-300 text-blue-600 rounded hover:bg-blue-50 transition disabled:opacity-50">{uploading ? "上传中..." : "选择图片"}</button>
@@ -139,25 +165,31 @@ export default function CustomerDashboard() {
               )}
             </div>
 
-            {/* 日期 + 地点 + 加急 */}
+            {/* 日期 + 加急 + 地点 */}
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">维修日期 <span className="text-red-500">*</span></label>
                 <select value={repairDay} onChange={(e) => setRepairDay(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                  <option value="">-- 请选择 --</option><option value="周二">周二</option><option value="周五">周五</option>
+                  <option value="">-- 请选择 --</option>
+                  <option value="周二">周二</option>
+                  <option value="周五">周五</option>
+                  <option value="加急">加急 (+10r)</option>
                 </select>
               </div>
+              {repairDay === "加急" ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">加急时间 <span className="text-red-500">*</span></label>
+                  <input type="text" value={rushTime} onChange={(e) => setRushTime(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="如：周三下午3点" required />
+                </div>
+              ) : <div />}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">维修地点 <span className="text-red-500">*</span></label>
                 <select value={location} onChange={(e) => setLocation(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                  <option value="">-- 请选择 --</option><option value="四教停车场">四教停车场</option><option value="46栋停车场">46栋停车场</option>
+                  <option value="">-- 请选择 --</option>
+                  <option value="四教停车场">四教停车场</option>
+                  <option value="46栋停车场">46栋停车场</option>
+                  <option value="上门取送">上门取送 (+10r)</option>
                 </select>
-              </div>
-              <div className="flex items-end pb-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={isRush} onChange={(e) => setIsRush(e.target.checked)} className="w-4 h-4 text-blue-600 rounded" />
-                  <span className="text-sm text-gray-700">加急 (+10r)</span>
-                </label>
               </div>
             </div>
 

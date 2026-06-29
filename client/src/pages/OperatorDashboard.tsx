@@ -14,12 +14,11 @@ export default function OperatorDashboard() {
   // 筛选
   const [filterDay, setFilterDay] = useState("all");
   const [filterLocation, setFilterLocation] = useState("all");
-  const [filterRush, setFilterRush] = useState("all");
 
   useEffect(() => {
     if (user?.role !== "operator") { navigate("/dashboard"); return; }
-    fetchOrders(undefined, { repairDay: filterDay, location: filterLocation, isRush: filterRush });
-  }, [user, navigate, fetchOrders, filterDay, filterLocation, filterRush]);
+    fetchOrders(undefined, { repairDay: filterDay, location: filterLocation });
+  }, [user, navigate, fetchOrders, filterDay, filterLocation]);
 
   return (
     <div>
@@ -44,13 +43,6 @@ export default function OperatorDashboard() {
           <option value="四教停车场">四教停车场</option>
           <option value="46栋停车场">46栋停车场</option>
         </select>
-        <span className="text-gray-300">▸</span>
-        <select value={filterRush} onChange={(e) => setFilterRush(e.target.value)}
-          className="px-2 py-1 text-sm border border-gray-300 rounded">
-          <option value="all">全部类型</option>
-          <option value="1">仅加急</option>
-          <option value="0">非加急</option>
-        </select>
       </div>
 
       {loading ? <div className="text-center py-12 text-gray-500">加载中...</div>
@@ -63,7 +55,7 @@ export default function OperatorDashboard() {
       }
 
       {viewOrderId && (
-        <OrderDetailModal orderId={viewOrderId} isOperator onClose={() => { setViewOrderId(null); fetchOrders(undefined, { repairDay: filterDay, location: filterLocation, isRush: filterRush }); }} />
+        <OrderDetailModal orderId={viewOrderId} isOperator onClose={() => { setViewOrderId(null); fetchOrders(undefined, { repairDay: filterDay, location: filterLocation }); }} />
       )}
     </div>
   );
