@@ -45,16 +45,31 @@ export default function CustomerDashboard() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { setSubmitError("图片不能超过5MB"); return; }
     setUploading(true); setSubmitError("");
     try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
+      // 前端压缩图片：最大1280宽，JPEG质量0.6，把3MB压到200KB以内
+      const compressedBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            const max = 1280;
+            if (w > max) { h = h * max / w; w = max; }
+            if (h > max) { w = w * max / h; h = max; }
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d')!;
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.6));
+          };
+          img.onerror = reject;
+          img.src = reader.result as string;
+        };
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
-      const url = await uploadImage(base64);
+      const url = await uploadImage(compressedBase64);
       setImages(prev => [...prev, url]);
     } catch (err: any) { setSubmitError("图片上传失败: " + (err.message || "未知错误")); }
     finally { setUploading(false); if (fileRef.current) fileRef.current.value = ""; }
