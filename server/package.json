@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "seed": "tsx src/seed.ts",
+    "cleanup": "tsx src/cleanup.ts",
     "build": "tsc",
     "start": "node dist/index.js"
   },
