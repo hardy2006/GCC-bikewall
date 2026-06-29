@@ -51,7 +51,7 @@ export default function OrderDetailModal({ orderId, onClose, isOperator }: Props
               <div className="col-span-2"><span className="text-gray-400">服务项目：</span><span className="text-gray-800 font-medium">{order.serviceType || "-"}</span></div>
               <div><span className="text-gray-400">维修日期：</span>{order.repairDay || "-"}</div>
               <div><span className="text-gray-400">维修地点：</span>{order.location || "-"}</div>
-              {order.bikeBrand && <div><span className="text-gray-400">品牌：</span>{order.bikeBrand}</div>}
+              <div><span className="text-gray-400">编号：</span>{order.orderNumber || "-"}</div>
               {order.bikeColor && <div><span className="text-gray-400">颜色：</span>{order.bikeColor}</div>}
               <div><span className="text-gray-400">维修员：</span>{order.technicianName || "未分配"}</div>
               <div><span className="text-gray-400">创建时间：</span>{new Date(order.createdAt).toLocaleString("zh-CN")}</div>

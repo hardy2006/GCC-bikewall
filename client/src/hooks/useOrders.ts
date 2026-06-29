@@ -8,8 +8,11 @@ export interface RepairOrder {
   customerPhone?: string;
   technicianId: number | null;
   technicianName: string | null;
-  bikeBrand: string | null;
   bikeColor: string | null;
+  wechatId: string | null;
+  orderNumber: string | null;
+  transferStatus: string | null;
+  transferToId: number | null;
   problemDescription: string;
   urgentLevel: string;
   status: string;
@@ -93,5 +96,17 @@ export function useOrders() {
     return data.order;
   }, []);
 
-  return { orders, loading, error, fetchOrders, createOrder, uploadImage, getOrderDetail, acceptOrder, updateStatus, cancelOrder };
+  const transferRequest = useCallback(async (orderId: number, targetTechId: number) => {
+    const data = await authFetch<{ order: RepairOrder }>(`/orders/${orderId}/transfer-request`, {
+      method: 'PATCH', body: JSON.stringify({ targetTechId }),
+    });
+    return data.order;
+  }, []);
+
+  const transferAccept = useCallback(async (orderId: number) => {
+    const data = await authFetch<{ order: RepairOrder }>(`/orders/${orderId}/transfer-accept`, { method: 'PATCH' });
+    return data.order;
+  }, []);
+
+  return { orders, loading, error, fetchOrders, createOrder, uploadImage, getOrderDetail, acceptOrder, updateStatus, cancelOrder, transferRequest, transferAccept };
 }

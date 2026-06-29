@@ -41,9 +41,10 @@ export default function OrderCard({ order, onView, onAccept, onStatusUpdate, sho
           <span className="text-gray-400">地点：</span>
           <span className="text-gray-700">{order.location || "-"}</span>
         </div>
-        {order.bikeBrand && (
-          <div><span className="text-gray-400">品牌：</span><span className="text-gray-700">{order.bikeBrand}</span></div>
-        )}
+        <div>
+          <span className="text-gray-400">编号：</span>
+          <span className="text-gray-700 font-medium">{order.orderNumber || `#${order.id}`}</span>
+        </div>
         <div><span className="text-gray-400">客户：</span><span className="text-gray-700">{order.customerName}</span></div>
         {order.technicianName && (
           <div><span className="text-gray-400">维修员：</span><span className="text-gray-700">{order.technicianName}</span></div>

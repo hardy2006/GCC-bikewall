@@ -23,6 +23,8 @@ const ORDER_FIELDS = `
   r.status, r.repair_notes as repairNotes,
   r.service_type as serviceType, r.image_paths as imagePaths,
   r.repair_day as repairDay, r.rush_time as rushTime, r.location, r.detail_location as detailLocation, r.is_rush as isRush,
+  r.wechat_id as wechatId, r.order_number as orderNumber,
+  r.transfer_status as transferStatus, r.transfer_to_id as transferToId,
   r.created_at as createdAt, r.updated_at as updatedAt,
   c.username as customerName, c.phone as customerPhone,
   t.username as technicianName
@@ -65,58 +67,45 @@ router.post("/", requireRole("customer"), (req: Request, res: Response) => {
   try {
     const {
       serviceType, imagePaths, repairDay, location, detailLocation, isRush, rushTime,
-      bikeBrand, bikeColor, problemDescription, urgentLevel
+      wechatId, bikeColor, problemDescription, urgentLevel
     } = req.body;
 
-    if (!serviceType) {
-      res.status(400).json({ error: "请选择服务项目" });
-      return;
-    }
-    if (!repairDay) {
-      res.status(400).json({ error: "请选择维修日期" });
-      return;
-    }
-    if (repairDay === "加急" && !rushTime) {
-      res.status(400).json({ error: "请填写加急时间" });
-      return;
-    }
-    if (!location) {
-      res.status(400).json({ error: "请选择维修地点" });
-      return;
-    }
-    if (location === "上门" && !detailLocation) {
-      res.status(400).json({ error: "请填写具体上门位置（教学楼/宿舍楼）" });
-      return;
-    }
-    if (!imagePaths || (Array.isArray(imagePaths) && imagePaths.length === 0)) {
-      res.status(400).json({ error: "请上传单车位置图片" });
-      return;
-    }
+    if (!serviceType) { res.status(400).json({ error: "请选择服务项目" }); return; }
+    if (!repairDay) { res.status(400).json({ error: "请选择维修日期" }); return; }
+    if (repairDay === "加急" && !rushTime) { res.status(400).json({ error: "请填写加急时间" }); return; }
+    if (!location) { res.status(400).json({ error: "请选择维修地点" }); return; }
+    if (location === "上门" && !detailLocation) { res.status(400).json({ error: "请填写具体上门位置" }); return; }
+    if (!imagePaths || (Array.isArray(imagePaths) && imagePaths.length === 0)) { res.status(400).json({ error: "请上传图片" }); return; }
+    if (!wechatId) { res.status(400).json({ error: "请填写微信号" }); return; }
 
-    const validLevels = ["low", "normal", "high", "urgent"];
-    const level = validLevels.includes(urgentLevel) ? urgentLevel : "normal";
+    const level = "normal";
     const rush = isRush ? 1 : 0;
     const imgs = JSON.stringify(Array.isArray(imagePaths) ? imagePaths : []);
+
+    // 生成订单编号
+    const dayCode: Record<string, string> = { "周二": "2", "周五": "5", "加急": "A" };
+    const locCode: Record<string, string> = { "四教停车场": "4", "46栋停车场": "46", "上门": "A" };
+    const dc = dayCode[repairDay] || "X";
+    const lc = locCode[location] || "X";
+    const count = all("SELECT COUNT(*) as cnt FROM repair_orders WHERE repair_day=? AND location=?", [repairDay, location])[0] as any;
+    const serial = (count?.cnt || 0) + 1;
+    const orderNumber = `${dc}-${lc}-${serial}`;
 
     const newId = insert(
       `INSERT INTO repair_orders
        (customer_id, service_type, image_paths, repair_day, rush_time, location, detail_location, is_rush,
-        bike_brand, bike_color, problem_description, urgent_level)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        wechat_id, bike_color, problem_description, urgent_level, order_number)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [req.user!.userId, serviceType, imgs, repairDay, rushTime || null, location, detailLocation || null, rush,
-       bikeBrand || null, bikeColor || null, problemDescription || "", level]
+       wechatId, bikeColor || null, problemDescription || "", level, orderNumber]
     );
 
-    run(
-      "INSERT INTO progress_logs (order_id, operator_id, action, new_status) VALUES (?, ?, ?, ?)",
-      [newId, req.user!.userId, "提交维修申请", "pending"]
-    );
+    run("INSERT INTO progress_logs (order_id, operator_id, action, new_status) VALUES (?, ?, ?, ?)",
+      [newId, req.user!.userId, "提交维修申请", "pending"]);
 
-    const rows = all(`SELECT ${ORDER_FIELDS} FROM repair_orders r
-      JOIN users c ON r.customer_id = c.id
-      LEFT JOIN users t ON r.technician_id = t.id
-      WHERE r.id = ?`, [newId]) as any[];
-    const order = rows[0];
+    const order = get(`SELECT ${ORDER_FIELDS} FROM repair_orders r
+      JOIN users c ON r.customer_id = c.id LEFT JOIN users t ON r.technician_id = t.id
+      WHERE r.id = ?`, [newId]) as any;
     if (order) order.imagePaths = order.imagePaths ? JSON.parse(order.imagePaths) : [];
 
     res.status(201).json({ message: "维修订单已提交", order });
@@ -309,6 +298,52 @@ router.patch("/:id/cancel", requireRole("customer"), (req: Request, res: Respons
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// PATCH /api/orders/:id/transfer-request - 维修员发起转交申请
+router.patch("/:id/transfer-request", requireRole("technician"), (req: Request, res: Response) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const { targetTechId } = req.body;
+    const order = get("SELECT * FROM repair_orders WHERE id = ?", [orderId]) as any;
+    if (!order) { res.status(404).json({ error: "订单不存在" }); return; }
+    if (order.technician_id !== req.user!.userId) { res.status(403).json({ error: "只能转交自己接的订单" }); return; }
+    if (!targetTechId) { res.status(400).json({ error: "请选择目标维修员" }); return; }
+
+    run("UPDATE repair_orders SET transfer_status=?, transfer_to_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+      ["pending", targetTechId, orderId]);
+    run("INSERT INTO progress_logs (order_id, operator_id, action, new_status, note) VALUES (?, ?, ?, ?, ?)",
+      [orderId, req.user!.userId, "发起转交", "transfer", `转交给维修员 #${targetTechId}`]);
+
+    const updated = get(`SELECT ${ORDER_FIELDS} FROM repair_orders r
+      JOIN users c ON r.customer_id = c.id LEFT JOIN users t ON r.technician_id = t.id
+      WHERE r.id = ?`, [orderId]) as any;
+    if (updated) updated.imagePaths = updated.imagePaths ? JSON.parse(updated.imagePaths) : [];
+    res.json({ message: "转交申请已发送", order: updated });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// PATCH /api/orders/:id/transfer-accept - 维修员接受转交
+router.patch("/:id/transfer-accept", requireRole("technician"), (req: Request, res: Response) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const order = get("SELECT * FROM repair_orders WHERE id = ?", [orderId]) as any;
+    if (!order) { res.status(404).json({ error: "订单不存在" }); return; }
+    if (order.transfer_to_id !== req.user!.userId) { res.status(403).json({ error: "不是转交给您的订单" }); return; }
+    if (order.transfer_status !== "pending") { res.status(400).json({ error: "没有待处理的转交申请" }); return; }
+
+    const oldTechId = order.technician_id;
+    run("UPDATE repair_orders SET technician_id=?, transfer_status=NULL, transfer_to_id=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+      [req.user!.userId, orderId]);
+    run("INSERT INTO progress_logs (order_id, operator_id, action, old_status, new_status, note) VALUES (?, ?, ?, ?, ?, ?)",
+      [orderId, req.user!.userId, "接受转交", "transfer", "transferred", `从维修员 #${oldTechId} 转交`]);
+
+    const updated = get(`SELECT ${ORDER_FIELDS} FROM repair_orders r
+      JOIN users c ON r.customer_id = c.id LEFT JOIN users t ON r.technician_id = t.id
+      WHERE r.id = ?`, [orderId]) as any;
+    if (updated) updated.imagePaths = updated.imagePaths ? JSON.parse(updated.imagePaths) : [];
+    res.json({ message: "已接受转交", order: updated });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
 export default router;

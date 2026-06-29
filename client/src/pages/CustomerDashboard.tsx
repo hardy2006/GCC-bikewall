@@ -23,7 +23,7 @@ export default function CustomerDashboard() {
 
   const [serviceType, setServiceType] = useState("");
   const [customFault, setCustomFault] = useState("");
-  const [bikeBrand, setBikeBrand] = useState("");
+  const [wechatId, setWechatId] = useState("");
   const [bikeColor, setBikeColor] = useState("");
   const [problemDescription, setProblemDescription] = useState("");
   const [repairDay, setRepairDay] = useState("");
@@ -91,6 +91,7 @@ export default function CustomerDashboard() {
     if (!location) { setSubmitError("请选择维修地点"); return; }
     if (location === "上门" && !detailLocation.trim()) { setSubmitError("请填写具体上门位置（教学楼/宿舍楼）"); return; }
     if (images.length === 0) { setSubmitError("请上传至少一张单车位置图片"); return; }
+    if (!wechatId.trim()) { setSubmitError("请填写微信号"); return; }
     setSubmitError(""); setSubmitting(true);
     try {
       await createOrder({
@@ -101,13 +102,13 @@ export default function CustomerDashboard() {
         isRush: repairDay === "加急",
         rushTime: repairDay === "加急" ? rushTime : undefined,
         imagePaths: images,
-        bikeBrand: bikeBrand || undefined,
+        wechatId,
         bikeColor: bikeColor || undefined,
         problemDescription: problemDescription || undefined,
         urgentLevel: repairDay === "加急" ? "urgent" : "normal",
       });
       setSubmitSuccess(true);
-      setServiceType(""); setCustomFault(""); setBikeBrand(""); setBikeColor("");
+      setServiceType(""); setCustomFault(""); setWechatId(""); setBikeColor("");
       setProblemDescription(""); setRepairDay(""); setRushTime(""); setLocation(""); setDetailLocation("");
       setImages([]);
       fetchOrders("customer");
@@ -154,10 +155,10 @@ export default function CustomerDashboard() {
               )}
             </div>
 
-            {/* 单车信息 */}
+            {/* 颜色 + 微信号 */}
             <div className="grid grid-cols-2 gap-4">
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">单车品牌</label><input type="text" value={bikeBrand} onChange={(e) => setBikeBrand(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="如：捷安特" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">颜色</label><input type="text" value={bikeColor} onChange={(e) => setBikeColor(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="如：黑色" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">微信号 <span className="text-red-500">*</span></label><input type="text" value={wechatId} onChange={(e) => setWechatId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="微信联系用" required /></div>
             </div>
 
             {/* 补充说明 */}

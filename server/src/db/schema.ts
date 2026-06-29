@@ -20,6 +20,10 @@ CREATE TABLE IF NOT EXISTS repair_orders (
   bike_model TEXT,
   bike_color TEXT,
   problem_description TEXT NOT NULL,
+  wechat_id TEXT,
+  order_number TEXT,
+  transfer_status TEXT,
+  transfer_to_id INTEGER REFERENCES users(id),
   urgent_level TEXT NOT NULL DEFAULT "normal" CHECK(urgent_level IN ("low", "normal", "high", "urgent")),
   status TEXT NOT NULL DEFAULT "pending" CHECK(status IN (
     "pending",
@@ -64,5 +68,9 @@ export async function initDatabase(): Promise<void> {
   try { exec("ALTER TABLE repair_orders ADD COLUMN rush_time TEXT"); } catch {}
   try { exec("ALTER TABLE repair_orders ADD COLUMN detail_location TEXT"); } catch {}
   try { exec("ALTER TABLE repair_orders ADD COLUMN is_rush INTEGER NOT NULL DEFAULT 0"); } catch {}
+  try { exec("ALTER TABLE repair_orders ADD COLUMN wechat_id TEXT"); } catch {}
+  try { exec("ALTER TABLE repair_orders ADD COLUMN order_number TEXT"); } catch {}
+  try { exec("ALTER TABLE repair_orders ADD COLUMN transfer_status TEXT"); } catch {}
+  try { exec("ALTER TABLE repair_orders ADD COLUMN transfer_to_id INTEGER DEFAULT NULL"); } catch {}
   console.log("[DB] Schema initialized successfully");
 }
