@@ -30,8 +30,13 @@ export async function apiFetch<T = any>(
     response = await fetch(`${BASE_URL}${endpoint}`, {
       ...fetchOptions,
       headers,
+      // 添加请求超时和重试机制
+      signal: AbortSignal.timeout(10000) // 10秒超时
     });
   } catch (err: any) {
+    if (err.name === 'AbortError') {
+      throw new Error('请求超时，请检查网络连接');
+    }
     throw new Error(`网络错误：无法连接到服务器 — ${err.message}`);
   }
 
