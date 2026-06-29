@@ -78,13 +78,6 @@ export default function LoginPage() {
               {isRegister ? "已有账号？去登录" : "没有账号？去注册"}
             </button>
           </div>
-          {!isRegister && (
-            <div className="mt-4 p-3 bg-gray-50 rounded text-xs text-gray-500">
-              <p className="font-medium mb-1">管理员账号（密码 123456）：</p>
-              <p>维修员: tech1 / tech2</p>
-              <p>运营者: operator1</p>
-            </div>
-          )}
         </div>
       </div>
     </div>
