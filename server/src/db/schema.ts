@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS repair_orders (
   repair_day TEXT,
   rush_time TEXT,
   location TEXT,
+  detail_location TEXT,
   is_rush INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -59,5 +60,9 @@ CREATE INDEX IF NOT EXISTS idx_progress_order ON progress_logs(order_id);
 export async function initDatabase(): Promise<void> {
   await initConnection();
   exec(SCHEMA);
+  // 兼容旧数据库：添加可能缺失的列
+  try { exec("ALTER TABLE repair_orders ADD COLUMN rush_time TEXT"); } catch {}
+  try { exec("ALTER TABLE repair_orders ADD COLUMN detail_location TEXT"); } catch {}
+  try { exec("ALTER TABLE repair_orders ADD COLUMN is_rush INTEGER NOT NULL DEFAULT 0"); } catch {}
   console.log("[DB] Schema initialized successfully");
 }

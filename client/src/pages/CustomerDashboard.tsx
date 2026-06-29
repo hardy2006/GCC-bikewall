@@ -29,6 +29,7 @@ export default function CustomerDashboard() {
   const [repairDay, setRepairDay] = useState("");
   const [rushTime, setRushTime] = useState("");
   const [location, setLocation] = useState("");
+  const [detailLocation, setDetailLocation] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -73,6 +74,7 @@ export default function CustomerDashboard() {
     if (!repairDay) { setSubmitError("请选择维修日期"); return; }
     if (repairDay === "加急" && !rushTime.trim()) { setSubmitError("请填写加急时间"); return; }
     if (!location) { setSubmitError("请选择维修地点"); return; }
+    if (location === "上门" && !detailLocation.trim()) { setSubmitError("请填写具体上门位置（教学楼/宿舍楼）"); return; }
     if (images.length === 0) { setSubmitError("请上传至少一张单车位置图片"); return; }
     setSubmitError(""); setSubmitting(true);
     try {
@@ -80,6 +82,7 @@ export default function CustomerDashboard() {
         serviceType: getFinalServiceType(),
         repairDay,
         location,
+        detailLocation: location === "上门" ? detailLocation : undefined,
         isRush: repairDay === "加急",
         rushTime: repairDay === "加急" ? rushTime : undefined,
         imagePaths: images,
@@ -90,7 +93,7 @@ export default function CustomerDashboard() {
       });
       setSubmitSuccess(true);
       setServiceType(""); setCustomFault(""); setBikeBrand(""); setBikeColor("");
-      setProblemDescription(""); setRepairDay(""); setRushTime(""); setLocation("");
+      setProblemDescription(""); setRepairDay(""); setRushTime(""); setLocation(""); setDetailLocation("");
       setImages([]);
       fetchOrders("customer");
       setTimeout(() => setSubmitSuccess(false), 3000);
@@ -113,7 +116,7 @@ export default function CustomerDashboard() {
       {showForm ? (
         <div className="bg-white rounded-lg shadow-md p-6 max-w-2xl">
           <h2 className="text-lg font-semibold mb-4">提交维修申请</h2>
-          <p className="text-xs text-gray-400 mb-4">营业时间：每周二、五统一修 | 加急可约其他时间(+10r) | 上门取送(+10r)</p>
+          <p className="text-xs text-gray-400 mb-4">营业时间：每周二、五统一修 | 加急可约其他时间(+10r) | 上门(+10r)</p>
           {submitSuccess && <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-green-700 text-sm">✅ 维修申请已成功提交！维修员将尽快处理您的订单。</div>}
           {submitError && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">{submitError}</div>}
 
@@ -188,8 +191,13 @@ export default function CustomerDashboard() {
                   <option value="">-- 请选择 --</option>
                   <option value="四教停车场">四教停车场</option>
                   <option value="46栋停车场">46栋停车场</option>
-                  <option value="上门取送">上门取送 (+10r)</option>
+                  <option value="上门">上门 (+10r)</option>
                 </select>
+                {location === "上门" && (
+                  <input type="text" value={detailLocation} onChange={(e) => setDetailLocation(e.target.value)}
+                    className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="请输入具体位置（如：三教302、42栋宿舍楼下）" required />
+                )}
               </div>
             </div>
 

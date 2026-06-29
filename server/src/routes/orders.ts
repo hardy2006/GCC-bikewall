@@ -22,7 +22,7 @@ const ORDER_FIELDS = `
   r.problem_description as problemDescription, r.urgent_level as urgentLevel,
   r.status, r.repair_notes as repairNotes,
   r.service_type as serviceType, r.image_paths as imagePaths,
-  r.repair_day as repairDay, r.rush_time as rushTime, r.location, r.is_rush as isRush,
+  r.repair_day as repairDay, r.rush_time as rushTime, r.location, r.detail_location as detailLocation, r.is_rush as isRush,
   r.created_at as createdAt, r.updated_at as updatedAt,
   c.username as customerName, c.phone as customerPhone,
   t.username as technicianName
@@ -51,7 +51,7 @@ router.post("/upload", requireRole("customer"), (req: Request, res: Response) =>
     const filepath = path.join(UPLOAD_DIR, filename);
     fs.writeFileSync(filepath, Buffer.from(data, "base64"));
 
-    const url = `/uploads/${filename}`;
+    const url = `https://api.gcc-bike.top/uploads/${filename}`;
     res.json({ url, filename });
   } catch (err: any) {
     res.status(500).json({ error: "图片上传失败: " + err.message });
@@ -64,7 +64,7 @@ router.post("/upload", requireRole("customer"), (req: Request, res: Response) =>
 router.post("/", requireRole("customer"), (req: Request, res: Response) => {
   try {
     const {
-      serviceType, imagePaths, repairDay, location, isRush, rushTime,
+      serviceType, imagePaths, repairDay, location, detailLocation, isRush, rushTime,
       bikeBrand, bikeColor, problemDescription, urgentLevel
     } = req.body;
 
@@ -84,6 +84,10 @@ router.post("/", requireRole("customer"), (req: Request, res: Response) => {
       res.status(400).json({ error: "请选择维修地点" });
       return;
     }
+    if (location === "上门" && !detailLocation) {
+      res.status(400).json({ error: "请填写具体上门位置（教学楼/宿舍楼）" });
+      return;
+    }
     if (!imagePaths || (Array.isArray(imagePaths) && imagePaths.length === 0)) {
       res.status(400).json({ error: "请上传单车位置图片" });
       return;
@@ -96,10 +100,10 @@ router.post("/", requireRole("customer"), (req: Request, res: Response) => {
 
     const newId = insert(
       `INSERT INTO repair_orders
-       (customer_id, service_type, image_paths, repair_day, rush_time, location, is_rush,
+       (customer_id, service_type, image_paths, repair_day, rush_time, location, detail_location, is_rush,
         bike_brand, bike_color, problem_description, urgent_level)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [req.user!.userId, serviceType, imgs, repairDay, rushTime || null, location, rush,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [req.user!.userId, serviceType, imgs, repairDay, rushTime || null, location, detailLocation || null, rush,
        bikeBrand || null, bikeColor || null, problemDescription || "", level]
     );
 
