@@ -45,7 +45,7 @@ async function main() {
     credentials: true
   }));
   app.use(express.json({ limit: '10mb' }));
-  app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
+  app.use("/uploads", express.static(process.env.DATA_DIR ? path.join(process.env.DATA_DIR, "uploads") : path.join(__dirname, "..", "uploads")));
 
   app.use((req, _res, next) => {
     console.log(`[${new Date().toLocaleString()}] ${req.method} ${req.path}`);
