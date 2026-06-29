@@ -54,7 +54,9 @@ async function main() {
     origin: [
       "http://localhost:5173",
       "http://localhost:3000",
-      "https://gcc-bikewall.pages.dev"
+      "https://gcc-bikewall.pages.dev",
+      "https://gcc-bike.top",
+      "https://api.gcc-bike.top"
     ],
     credentials: true
   }));
