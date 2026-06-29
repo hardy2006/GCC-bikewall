@@ -27,11 +27,12 @@ export async function apiFetch<T = any>(
 
   let response: Response;
   try {
+    const isUpload = endpoint.includes('upload');
     response = await fetch(`${BASE_URL}${endpoint}`, {
       ...fetchOptions,
       headers,
-      // 添加请求超时和重试机制
-      signal: AbortSignal.timeout(10000) // 10秒超时
+      // 图片上传给60s超时，普通请求10s
+      signal: AbortSignal.timeout(isUpload ? 60000 : 10000)
     });
   } catch (err: any) {
     if (err.name === 'AbortError') {
