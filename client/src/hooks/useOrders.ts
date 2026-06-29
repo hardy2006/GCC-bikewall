@@ -88,5 +88,10 @@ export function useOrders() {
     return data.order;
   }, []);
 
-  return { orders, loading, error, fetchOrders, createOrder, uploadImage, getOrderDetail, acceptOrder, updateStatus };
+  const cancelOrder = useCallback(async (orderId: number) => {
+    const data = await authFetch<{ order: RepairOrder }>(`/orders/${orderId}/cancel`, { method: 'PATCH' });
+    return data.order;
+  }, []);
+
+  return { orders, loading, error, fetchOrders, createOrder, uploadImage, getOrderDetail, acceptOrder, updateStatus, cancelOrder };
 }

@@ -5,7 +5,7 @@ import { StatusBadge } from "../components/StatusBadge";
 interface Props { orderId: number; onClose: () => void; isOperator?: boolean; }
 
 export default function OrderDetailModal({ orderId, onClose, isOperator }: Props) {
-  const { getOrderDetail, updateStatus, acceptOrder } = useOrders();
+  const { getOrderDetail, updateStatus, acceptOrder, cancelOrder } = useOrders();
   const [order, setOrder] = useState<RepairOrder | null>(null);
   const [logs, setLogs] = useState<ProgressLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,9 +67,10 @@ export default function OrderDetailModal({ orderId, onClose, isOperator }: Props
               <div className="mb-4"><h3 className="text-sm font-medium text-gray-700 mb-1">位置图片</h3>
                 <div className="flex gap-2 flex-wrap">
                   {order.imagePaths.map((url, i) => (
-                    <a key={i} href={url} target="_blank" rel="noreferrer">
-                      <img src={url} alt={`位置图${i+1}`} className="w-24 h-24 object-cover rounded border hover:opacity-80" />
-                    </a>
+                    <img key={i} src={url} alt={`位置图${i+1}`}
+                      className="w-48 h-36 object-cover rounded border cursor-pointer hover:opacity-80 transition"
+                      onClick={() => window.open(url, '_blank')}
+                    />
                   ))}
                 </div></div>
             )}
@@ -91,6 +92,18 @@ export default function OrderDetailModal({ orderId, onClose, isOperator }: Props
                   <button onClick={() => handleStatusUpdate("completed")} className="px-4 py-1.5 rounded text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white">标记完成</button>
                 )}
                 <button onClick={() => handleStatusUpdate("cancelled")} className="px-4 py-1.5 rounded text-sm font-medium bg-red-500 hover:bg-red-600 text-white">取消订单</button>
+              </div>
+            )}
+
+            {!isOperator && order.status === "pending" && (
+              <div className="flex gap-2 mb-4">
+                <button onClick={async () => {
+                  if (confirm("确认取消此订单？")) {
+                    await cancelOrder(order.id);
+                    const data = await getOrderDetail(order.id);
+                    setOrder(data.order); setLogs(data.logs);
+                  }
+                }} className="px-4 py-1.5 rounded text-sm font-medium bg-red-100 hover:bg-red-200 text-red-700 border border-red-200">取消订单</button>
               </div>
             )}
 

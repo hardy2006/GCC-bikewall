@@ -59,7 +59,7 @@ export default function OrderCard({ order, onView, onAccept, onStatusUpdate, sho
       {order.imagePaths && order.imagePaths.length > 0 && (
         <div className="flex gap-1 mb-2">
           {order.imagePaths.slice(0, 3).map((url, i) => (
-            <img key={i} src={url} alt={`图${i+1}`} className="w-12 h-12 object-cover rounded border" />
+            <img key={i} src={url} alt={`图${i+1}`} className="w-16 h-16 object-cover rounded border" />
           ))}
           {order.imagePaths.length > 3 && <span className="text-xs text-gray-400 self-end">+{order.imagePaths.length - 3}</span>}
         </div>

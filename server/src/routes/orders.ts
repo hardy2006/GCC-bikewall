@@ -287,4 +287,28 @@ router.patch("/:id/status", requireRole("technician", "operator"), (req: Request
   }
 });
 
+// PATCH /api/orders/:id/cancel - 客户取消自己的订单
+router.patch("/:id/cancel", requireRole("customer"), (req: Request, res: Response) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const order = get("SELECT * FROM repair_orders WHERE id = ?", [orderId]) as any;
+    if (!order) { res.status(404).json({ error: "订单不存在" }); return; }
+    if (order.customer_id !== req.user!.userId) { res.status(403).json({ error: "只能取消自己的订单" }); return; }
+    if (order.status !== "pending") { res.status(400).json({ error: "只能取消待接单状态的订单" }); return; }
+
+    run("UPDATE repair_orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", ["cancelled", orderId]);
+    run("INSERT INTO progress_logs (order_id, operator_id, action, old_status, new_status) VALUES (?, ?, ?, ?, ?)",
+      [orderId, req.user!.userId, "客户取消", "pending", "cancelled"]);
+
+    const updated = get(`SELECT ${ORDER_FIELDS} FROM repair_orders r
+      JOIN users c ON r.customer_id = c.id LEFT JOIN users t ON r.technician_id = t.id
+      WHERE r.id = ?`, [orderId]) as any;
+    if (updated) updated.imagePaths = updated.imagePaths ? JSON.parse(updated.imagePaths) : [];
+
+    res.json({ message: "订单已取消", order: updated });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
