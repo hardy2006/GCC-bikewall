@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useOrders, RepairOrder, ProgressLog } from "../hooks/useOrders";
+import { useAuth } from "../hooks/useAuth";
 import { StatusBadge } from "../components/StatusBadge";
 
 interface Props { orderId: number; onClose: () => void; isOperator?: boolean; }
 
 export default function OrderDetailModal({ orderId, onClose, isOperator }: Props) {
-  const { getOrderDetail, updateStatus, acceptOrder, cancelOrder } = useOrders();
+  const { user } = useAuth();
+  const { getOrderDetail, updateStatus, acceptOrder, cancelOrder, transferRequest, transferAccept } = useOrders();
   const [order, setOrder] = useState<RepairOrder | null>(null);
   const [logs, setLogs] = useState<ProgressLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,6 +106,29 @@ export default function OrderDetailModal({ orderId, onClose, isOperator }: Props
                     setOrder(data.order); setLogs(data.logs);
                   }
                 }} className="px-4 py-1.5 rounded text-sm font-medium bg-red-100 hover:bg-red-200 text-red-700 border border-red-200">取消订单</button>
+              </div>
+            )}
+
+            {user?.role === "technician" && order.technicianId === user?.id && (order.status === "accepted" || order.status === "repairing") && (
+              <div className="flex gap-2 mb-4">
+                <button onClick={async () => {
+                  const targetId = prompt("输入目标维修员ID:");
+                  if (!targetId || isNaN(Number(targetId))) return;
+                  try { const r = await transferRequest(order.id, Number(targetId)); setOrder(r);
+                    const d = await getOrderDetail(order.id); setOrder(d.order); setLogs(d.logs); }
+                  catch (err: any) { alert(err.message); }
+                }} className="px-4 py-1.5 rounded text-sm font-medium bg-purple-100 hover:bg-purple-200 text-purple-700 border border-purple-200">转交</button>
+              </div>
+            )}
+            {user?.role === "technician" && order.transferStatus === "pending" && order.transferToId === user?.id && (
+              <div className="flex gap-2 mb-4">
+                <button onClick={async () => {
+                  if (confirm("确认接受转交？")) {
+                    try { const r = await transferAccept(order.id); setOrder(r);
+                      const d = await getOrderDetail(order.id); setOrder(d.order); setLogs(d.logs); }
+                    catch (err: any) { alert(err.message); }
+                  }
+                }} className="px-4 py-1.5 rounded text-sm font-medium bg-green-100 hover:bg-green-200 text-green-700 border border-green-200">接受转交</button>
               </div>
             )}
 
