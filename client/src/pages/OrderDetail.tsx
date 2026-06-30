@@ -97,7 +97,7 @@ export default function OrderDetailModal({ orderId, onClose, isOperator }: Props
               </div>
             )}
 
-            {!isOperator && order.status === "pending" && (
+            {user?.role === "customer" && order.status === "pending" && (
               <div className="flex gap-2 mb-4">
                 <button onClick={async () => {
                   if (confirm("确认取消此订单？")) {
