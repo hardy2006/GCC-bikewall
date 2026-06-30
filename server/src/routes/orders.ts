@@ -250,6 +250,11 @@ router.patch("/:id/status", requireRole("technician", "operator"), (req: Request
     const order = get("SELECT * FROM repair_orders WHERE id = ?", [orderId]) as any;
     if (!order) { res.status(404).json({ error: "订单不存在" }); return; }
 
+    // 维修员不能取消订单
+    if (req.user!.role === "technician" && status === "cancelled") {
+      res.status(403).json({ error: "维修员无权取消订单" }); return;
+    }
+
     const oldStatus = order.status;
     const actionMap: Record<string, string> = {
       accepted: "重新接受", repairing: "开始维修", completed: "维修完成", cancelled: "取消订单",
